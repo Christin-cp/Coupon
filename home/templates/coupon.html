@@ -1,0 +1,219 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Coupon</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> <!-- Include jsPDF -->
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            margin: 0;
+            padding: 0;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-size: cover;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px 40px;
+            text-align: center;
+            width: 90%;
+            max-width: 480px;
+            margin: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-10px);
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .coupon-content {
+            filter: blur(8px);
+            opacity: 0;
+            transition: all 2s ease;
+        }
+
+        .container.revealed .coupon-content {
+            filter: blur(0);
+            opacity: 1;
+        }
+
+        img {
+            margin: 15px 0;
+            border-radius: 12px;
+            width: 350px;
+            height: auto;
+            max-height: 250px;
+            object-fit: cover;
+        }
+
+        p {
+            font-size: 18px;
+            margin: 12px 0;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        strong {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .highlight {
+            font-size: 16px;
+            font-style: italic;
+            color: #007bff;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+            margin: 15px 10px;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background-color: #28a745;
+        }
+
+        .btn-primary:hover {
+            background-color: #218838;
+        }
+
+        .btn-info {
+            background-color: #17a2b8;
+        }
+
+        .btn-info:hover {
+            background-color: #138496;
+        }
+
+        .footer {
+            font-size: 14px;
+            color: #aaa;
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        /* Style for the download button */
+        #download-pdf {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #ff6347;
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 18px;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="coupon-container">
+        <h1>Thank You for Your Purchase!</h1>
+        
+        {% comment %} {% if client and client.header_image %} {% endcomment %}
+            {% comment %} <img src="url({{ client.header_image.url }})" alt="Header Image"> {% endcomment %}
+        {% comment %} {% endif %} {% endcomment %}
+
+        <div class="coupon-content">
+            {% if coupon %}
+                <p><strong>Customer ID:</strong> {{ user_detail.customer_id }}</p>
+                <p>Your coupon code: <strong>{{ coupon.code }}</strong></p>
+                <p>Discount: <strong>{{ coupon.discount }}%</strong></p>
+                <p>Expiry Date: <strong>{{ coupon.valid_until }}</strong></p>
+
+                <a href="tel:+{{ contact_number }}" class="btn btn-primary">
+                    Call {{ contact_number }}
+                </a>
+
+                <a href="https://www.google.com/maps?q={{ client.google_maps_link }}" target="_blank" class="btn btn-info">
+                    Directions
+                </a>
+
+                {% if coupon.product_image %}
+                    <img src="{{ coupon.product_image.url }}" alt="Product Image">
+                {% endif %}
+
+                <p class="highlight"><strong>Redeem this coupon in-store only - take a screenshot and show it!</strong></p>
+                <p><strong>{{ coupon.message }}</strong></p>
+
+            {% else %}
+                <p>Your unique ID: <strong>{{ customer_id }}</strong></p>
+                <p>Sorry, no coupons are available right now.</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>Thank you for being our valued customer. We look forward to serving you again!</p>
+        </div>
+
+        <!-- Download Button -->
+<!-- Download PDF Button -->
+    <a href="{% url 'generate_coupon_pdf' coupon.code %}" class="btn" id="download-pdf">Download Coupon as PDF</a>
+
+    </div>
+
+    <script>
+        // Wait for the first mouseenter event to reveal the coupon content slowly
+        document.body.addEventListener('mouseenter', function() {
+            document.getElementById('coupon-container').classList.add('revealed');
+        }, { once: true });
+
+        // Download coupon content as PDF
+        document.getElementById('download-pdf').addEventListener('click', function() {
+            const { jsPDF } = window.jspdf; // jsPDF initialization
+            const doc = new jsPDF();
+
+            // Use html2canvas to capture the content as an image
+            html2canvas(document.getElementById('coupon-container')).then(function(canvas) {
+                const imgData = canvas.toDataURL('image/png'); // Convert canvas to base64 PNG image
+
+                // Add the image to the PDF
+                doc.addImage(imgData, 'PNG', 10, 10, 180, 160); // Adjust the position and size
+
+                // Save the generated PDF
+                doc.save('coupon_receipt.pdf');
+            });
+        });
+        
+    </script>
+    <script>
+        window.history.forward()
+
+    </script>
+   
+
+</body>
+</html>
+
